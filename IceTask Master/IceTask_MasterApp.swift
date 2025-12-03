@@ -1,6 +1,6 @@
 //
 //  IceTask_MasterApp.swift
-//  IceTask Master
+//  TaskMaster Pro
 //
 //  Created by Simon Bakhanets on 03.12.2025.
 //
@@ -9,9 +9,17 @@ import SwiftUI
 
 @main
 struct IceTask_MasterApp: App {
+    @StateObject private var taskService = TaskService()
+    @StateObject private var projectService = ProjectService()
+    @StateObject private var userService = UserService()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView(
+                taskService: taskService,
+                projectService: projectService,
+                userService: userService
+            )
         }
     }
 }
