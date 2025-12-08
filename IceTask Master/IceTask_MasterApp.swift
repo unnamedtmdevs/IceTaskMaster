@@ -13,6 +13,11 @@ struct IceTask_MasterApp: App {
     @StateObject private var projectService = ProjectService()
     @StateObject private var userService = UserService()
     
+    init() {
+        // Инициализируем AppsFlyer при запуске приложения
+        _ = AppsFlyerManager.shared
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView(
