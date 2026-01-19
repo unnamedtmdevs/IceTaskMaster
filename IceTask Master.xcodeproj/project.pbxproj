@@ -6,10 +6,6 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		82AF12342EF8000000000001 /* AppsFlyerLib in Frameworks */ = {isa = PBXBuildFile; productRef = 82AF12332EF8000000000001 /* AppsFlyerLib */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXContainerItemProxy section */
 		82C6D3F02EE091DD00624D96 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -56,7 +52,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				82AF12342EF8000000000001 /* AppsFlyerLib in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,7 +112,6 @@
 			);
 			name = "IceTask Master";
 			packageProductDependencies = (
-				82AF12332EF8000000000001 /* AppsFlyerLib */,
 			);
 			productName = "IceTask Master";
 			productReference = 82C6D3DE2EE091DB00624D96 /* IceTask Master.app */;
@@ -202,7 +196,6 @@
 			mainGroup = 82C6D3D52EE091DB00624D96;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				82AF12322EF8000000000001 /* XCRemoteSwiftPackageReference "AppsFlyerFramework" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 82C6D3DF2EE091DB00624D96 /* Products */;
@@ -596,25 +589,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		82AF12322EF8000000000001 /* XCRemoteSwiftPackageReference "AppsFlyerFramework" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/AppsFlyerSDK/AppsFlyerFramework";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 6.17.8;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		82AF12332EF8000000000001 /* AppsFlyerLib */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 82AF12322EF8000000000001 /* XCRemoteSwiftPackageReference "AppsFlyerFramework" */;
-			productName = AppsFlyerLib;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 82C6D3D62EE091DB00624D96 /* Project object */;
 }
